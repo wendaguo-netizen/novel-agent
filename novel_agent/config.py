@@ -11,8 +11,12 @@ CHAT_MODEL = "deepseek-chat"          # 执笔、润色、修改——创作型
 REASONING_MODEL = "deepseek-reasoner" # 总控、世界观、人物、情节、地图、摘要——推理型
 MODEL = CHAT_MODEL                     # 默认兜底
 
-# PostgreSQL (Supabase) connection string — set DATABASE_URL in env / .env
+# PostgreSQL (Supabase) — set DATABASE_URL in env for production
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# SQLite fallback — used locally when DATABASE_URL is not set
+DB_PATH = Path.home() / ".novel-agent" / "memory.db"
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 _style_path = Path(__file__).parent / "style.md"
 
