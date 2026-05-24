@@ -92,6 +92,12 @@ class MemoryStore:
                     data TEXT NOT NULL,
                     updated_at TEXT DEFAULT (datetime('now'))
                 );
+
+                CREATE TABLE IF NOT EXISTS story_bible (
+                    project_id INTEGER PRIMARY KEY REFERENCES projects(id),
+                    data TEXT NOT NULL DEFAULT '{}',
+                    updated_at TEXT DEFAULT (datetime('now'))
+                );
             """)
 
     def create_project(self, name: str, genre: str = "", description: str = "") -> int:
@@ -278,3 +284,22 @@ class MemoryStore:
                 "SELECT data FROM map_data WHERE project_id = ?", (project_id,)
             ).fetchone()
             return json.loads(row["data"]) if row else None
+
+    # ── Story Bible ───────────────────────────────────────────────────────────
+
+    def save_story_bible(self, project_id: int, data: dict):
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO story_bible (project_id, data, updated_at)
+                   VALUES (?, ?, datetime('now'))
+                   ON CONFLICT(project_id) DO UPDATE SET
+                   data=excluded.data, updated_at=excluded.updated_at""",
+                (project_id, json.dumps(data, ensure_ascii=False)),
+            )
+
+    def get_story_bible(self, project_id: int) -> dict:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT data FROM story_bible WHERE project_id = ?", (project_id,)
+            ).fetchone()
+            return json.loads(row["data"]) if row else {}

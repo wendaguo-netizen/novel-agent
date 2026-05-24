@@ -30,6 +30,7 @@ def run_pipeline_gen(project_id: int, user_brief: str, memory: MemoryStore):
     plot_threads = memory.get_open_plot_threads(project_id)
     latest_num = memory.get_latest_chapter_num(project_id)
     existing_map = memory.get_map_data(project_id)
+    story_bible = memory.get_story_bible(project_id)
     prev_chapter = ""
     if latest_num > 0:
         row = memory.get_chapter(project_id, latest_num)
@@ -37,7 +38,8 @@ def run_pipeline_gen(project_id: int, user_brief: str, memory: MemoryStore):
 
     # Stage 1: Master
     yield "status", {"msg": "总控Agent 正在解析创作指令...", "stage": 1}
-    plan = master.run(user_brief, world_state, characters, plot_threads, latest_num)
+    plan = master.run(user_brief, world_state, characters, plot_threads, latest_num,
+                      story_bible=story_bible)
     yield "plan", {
         "chapter_num": plan.chapter_num,
         "user_intent": plan.user_intent,

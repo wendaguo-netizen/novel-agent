@@ -115,6 +115,13 @@ _DDL = [
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS story_bible (
+        project_id BIGINT PRIMARY KEY REFERENCES projects(id),
+        data TEXT NOT NULL DEFAULT '{}',
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+    """,
 ]
 
 
@@ -384,3 +391,25 @@ class MemoryStore:
             cur.execute("SELECT data FROM map_data WHERE project_id = %s", (project_id,))
             row = cur.fetchone()
             return json.loads(row["data"]) if row else None
+
+    # ── Story Bible ───────────────────────────────────────────────────────────
+
+    def save_story_bible(self, project_id: int, data: dict):
+        with _conn() as conn:
+            cur = _cur(conn)
+            cur.execute(
+                """
+                INSERT INTO story_bible (project_id, data, updated_at)
+                VALUES (%s, %s, NOW())
+                ON CONFLICT (project_id) DO UPDATE
+                SET data = EXCLUDED.data, updated_at = NOW()
+                """,
+                (project_id, json.dumps(data, ensure_ascii=False)),
+            )
+
+    def get_story_bible(self, project_id: int) -> dict:
+        with _conn() as conn:
+            cur = _cur(conn)
+            cur.execute("SELECT data FROM story_bible WHERE project_id = %s", (project_id,))
+            row = cur.fetchone()
+            return json.loads(row["data"]) if row else {}

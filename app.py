@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from novel_agent.memory.store import MemoryStore
 from novel_agent.pipeline import run_pipeline_gen
 from novel_agent.agents.revise_agent import ReviseAgent
+from novel_agent.agents.director import DirectorAgent
 from novel_agent.config import load_style_guide
 
 app = FastAPI(title="网络小说 AI 创作助手")
@@ -133,6 +134,81 @@ class NoteCreate(BaseModel):
 def add_note(project_id: int, data: NoteCreate):
     memory.add_note(project_id, data.content)
     return {"ok": True}
+
+
+# ── Story Bible ───────────────────────────────────────────────────────────────
+
+@app.get("/api/projects/{project_id}/bible")
+def get_bible(project_id: int):
+    if not memory.get_project(project_id):
+        raise HTTPException(404)
+    return memory.get_story_bible(project_id)
+
+
+class BibleUpdate(BaseModel):
+    characters: str = ""
+    conflicts: str = ""
+    volumes: str = ""
+    notes: str = ""
+
+
+@app.put("/api/projects/{project_id}/bible")
+def save_bible(project_id: int, data: BibleUpdate):
+    if not memory.get_project(project_id):
+        raise HTTPException(404)
+    memory.save_story_bible(project_id, data.model_dump())
+    return {"ok": True}
+
+
+# ── Director (SSE) ────────────────────────────────────────────────────────────
+
+@app.get("/api/projects/{project_id}/director/stream")
+async def director_stream(project_id: int, chapter_range: str = Query(...)):
+    if not memory.get_project(project_id):
+        raise HTTPException(404)
+
+    loop = asyncio.get_event_loop()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    def sync_run():
+        try:
+            agent = DirectorAgent()
+            bible = memory.get_story_bible(project_id)
+            chapters_written = memory.get_latest_chapter_num(project_id)
+            characters = memory.get_characters(project_id)
+            threads = memory.get_open_plot_threads(project_id)
+            for chunk in agent.run_gen(bible, chapter_range, chapters_written, characters, threads):
+                asyncio.run_coroutine_threadsafe(queue.put(("chunk", chunk)), loop)
+        except Exception as e:
+            asyncio.run_coroutine_threadsafe(queue.put(("error", str(e))), loop)
+        finally:
+            asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+    loop.run_in_executor(executor, sync_run)
+
+    async def event_gen():
+        yield "event: ping\ndata: {}\n\n"
+        while True:
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=180.0)
+            except asyncio.TimeoutError:
+                yield 'event: error\ndata: {"msg":"请求超时"}\n\n'
+                return
+            if item is None:
+                yield "event: end\ndata: {}\n\n"
+                return
+            kind, payload = item
+            if kind == "chunk":
+                yield f"event: chunk\ndata: {json.dumps({'text': payload}, ensure_ascii=False)}\n\n"
+            else:
+                yield f"event: error\ndata: {json.dumps({'msg': payload}, ensure_ascii=False)}\n\n"
+                return
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
+    )
 
 
 # ── Chapter update (save revised content) ────────────────────────────────────

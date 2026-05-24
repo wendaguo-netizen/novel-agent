@@ -39,15 +39,16 @@ class MasterAgent(BaseAgent):
 
     def run(self, user_brief: str, world_state: dict, characters: list[dict],
             plot_threads: list[dict], latest_chapter_num: int,
-            story_summary: str = "") -> MasterPlan:
+            story_summary: str = "", story_bible: dict = None) -> MasterPlan:
         world_summary = _format_world(world_state)
         char_summary = _format_chars(characters)
         threads_summary = _format_threads(plot_threads)
+        bible_block = _format_bible(story_bible or {})
 
         user_content = f"""【用户创作简报】
 {user_brief}
 
-【当前世界观状态】
+{bible_block}【当前世界观状态】
 {world_summary}
 
 【当前角色状态】
@@ -89,6 +90,25 @@ def _format_chars(characters: list[dict]) -> str:
         state = c.get("current_state", "未知")
         lines.append(f"- {c['name']}：{state}")
     return "\n".join(lines)
+
+
+def _format_bible(bible: dict) -> str:
+    if not bible:
+        return ""
+    parts = []
+    labels = [
+        ("characters", "人物设定"),
+        ("conflicts",  "故事冲突"),
+        ("volumes",    "卷构思"),
+        ("notes",      "创作备注"),
+    ]
+    for key, label in labels:
+        val = (bible.get(key) or "").strip()
+        if val:
+            parts.append(f"  [{label}]\n  {val}")
+    if not parts:
+        return ""
+    return "【创作总纲（北极星方向，严格遵守）】\n" + "\n".join(parts) + "\n\n"
 
 
 def _format_threads(threads: list[dict]) -> str:

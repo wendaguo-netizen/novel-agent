@@ -123,6 +123,34 @@ textarea:focus { outline: none; border-color: var(--gold-dim); }
 .btn-save { background: #1e3a1e; color: var(--success); border: 1px solid #2a5a2a; display: none; }
 .btn-save:hover { background: #254a25; }
 
+/* Bible panel */
+.bible-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .bible-layout { grid-template-columns: 1fr; } }
+.bible-editor { display: flex; flex-direction: column; gap: 16px; }
+.bible-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.bible-section-header { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--gold); display: flex; align-items: center; gap: 8px; }
+.bible-section textarea { width: 100%; background: transparent; border: none; color: var(--text); padding: 12px 14px; font-size: 13px; line-height: 1.8; resize: vertical; min-height: 120px; font-family: inherit; }
+.bible-section textarea:focus { outline: none; }
+.bible-save-hint { font-size: 11px; color: var(--text-muted); }
+.director-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+.director-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.director-header h4 { font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 4px; }
+.director-header p { font-size: 12px; color: var(--text-muted); }
+.director-controls { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.director-controls input { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 8px 12px; font-size: 13px; font-family: inherit; width: 100%; }
+.director-controls input:focus { outline: none; border-color: var(--gold-dim); }
+.director-output { flex: 1; overflow-y: auto; padding: 16px; min-height: 300px; font-size: 13px; line-height: 1.9; color: var(--text-dim); }
+.director-output h2 { font-size: 15px; color: var(--gold); margin: 16px 0 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.director-output h2:first-child { margin-top: 0; }
+.director-output table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+.director-output th { background: #1e1a0a; color: var(--gold); padding: 7px 10px; text-align: left; border: 1px solid var(--border); font-weight: 600; }
+.director-output td { padding: 7px 10px; border: 1px solid var(--border); vertical-align: top; color: var(--text-dim); }
+.director-output tr:hover td { background: #1a1a1a; }
+.director-output strong { color: var(--text); }
+.director-output p { margin: 6px 0; }
+.director-output li { margin: 4px 0 4px 16px; }
+.director-empty { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; }
+
 /* Architecture panel */
 #panel-arch .arch-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; overflow-x: auto; }
 #panel-arch .arch-container svg { display: block; max-width: 100%; }
@@ -176,6 +204,7 @@ textarea:focus { outline: none; border-color: var(--gold-dim); }
   </div>
   <nav class="sidebar-nav">
     <div class="nav-item active" onclick="switchPanel('write',this)"><span class="nav-icon">✍</span> 写作</div>
+    <div class="nav-item" onclick="switchPanel('bible',this)"><span class="nav-icon">👑</span> 创作总纲</div>
     <div class="nav-item" onclick="switchPanel('arch',this)"><span class="nav-icon">◈</span> 架构图</div>
     <div class="nav-item" onclick="switchPanel('chapters',this)"><span class="nav-icon">📖</span> 章节库</div>
     <div class="nav-item" onclick="switchPanel('map',this)"><span class="nav-icon">🗺</span> 世界地图</div>
@@ -229,6 +258,58 @@ textarea:focus { outline: none; border-color: var(--gold-dim); }
           <div class="output-body" id="polish-output"></div>
         </div>
         <div id="final-result" class="final-box" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Story Bible / Director -->
+    <div class="panel" id="panel-bible">
+      <div class="section-header">
+        <h3>创作总纲</h3>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="bible-save-hint" id="bible-save-hint"></span>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="saveBible()">保存总纲</button>
+        </div>
+      </div>
+      <div class="bible-layout">
+
+        <!-- Left: Bible editor -->
+        <div class="bible-editor">
+          <div class="bible-section">
+            <div class="bible-section-header">🎭 人物设定</div>
+            <textarea id="bible-characters" placeholder="描述主角和重要配角：性格、背景、核心矛盾、成长弧线……&#10;&#10;例：&#10;林云 — 表面废柴灵根，实则拥有极阴至纯体质……" oninput="bibleChanged()"></textarea>
+          </div>
+          <div class="bible-section">
+            <div class="bible-section-header">⚔️ 故事冲突</div>
+            <textarea id="bible-conflicts" placeholder="核心冲突与主题：主角面对什么压迫？要夺回什么？整体故事想表达什么？&#10;&#10;例：&#10;宗门体制对天才的压制；主角以弱胜强，证道天地……" oninput="bibleChanged()"></textarea>
+          </div>
+          <div class="bible-section">
+            <div class="bible-section-header">📚 卷构思</div>
+            <textarea id="bible-volumes" placeholder="每一卷的核心事件和完成目标：&#10;&#10;第一卷（1-30章）：觉醒与逃离。废柴主角发现上古传承，被宗门追杀，逃入荒域……&#10;第二卷（31-60章）：磨砺与崛起……" oninput="bibleChanged()" style="min-height:160px"></textarea>
+          </div>
+          <div class="bible-section">
+            <div class="bible-section-header">📝 创作备注</div>
+            <textarea id="bible-notes" placeholder="其他想法、禁忌、风格要求……" oninput="bibleChanged()"></textarea>
+          </div>
+        </div>
+
+        <!-- Right: Director Agent -->
+        <div class="director-panel">
+          <div class="director-header">
+            <h4>👑 总监 Agent — 章节规划</h4>
+            <p>读取总纲内容，生成接下来几章的详细提纲</p>
+          </div>
+          <div class="director-controls">
+            <input type="text" id="director-range" placeholder="规划范围，例：第1-15章 / 接下来10章 / 第二卷全部章节">
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" id="director-btn" onclick="startDirector()" style="font-size:13px;padding:8px 16px">生成规划</button>
+              <span id="director-hint" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+          </div>
+          <div class="director-output" id="director-output">
+            <div class="director-empty">填写左侧总纲后，点击「生成规划」<br>总监 Agent 将输出两层结构的章节路线图</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -516,10 +597,119 @@ function loadCurrentPanel() {
   const active = document.querySelector('.panel.active');
   if (!active) return;
   const id = active.id;
+  if (id==='panel-bible') loadBible();
   if (id==='panel-chapters') loadChapters();
   if (id==='panel-map') loadMap();
   if (id==='panel-characters') loadCharacters();
   if (id==='panel-world') loadWorld();
+}
+
+// ── Story Bible ───────────────────────────────────────────────────────────────
+let _bibleChanged = false;
+let _bibleTimer = null;
+let _directorEs = null;
+
+async function loadBible() {
+  if (!currentProjectId) return;
+  const data = await api(`/api/projects/${currentProjectId}/bible`);
+  document.getElementById('bible-characters').value = data.characters || '';
+  document.getElementById('bible-conflicts').value  = data.conflicts  || '';
+  document.getElementById('bible-volumes').value    = data.volumes    || '';
+  document.getElementById('bible-notes').value      = data.notes      || '';
+  _bibleChanged = false;
+  document.getElementById('bible-save-hint').textContent = '';
+}
+
+function bibleChanged() {
+  _bibleChanged = true;
+  document.getElementById('bible-save-hint').textContent = '未保存…';
+  clearTimeout(_bibleTimer);
+  _bibleTimer = setTimeout(saveBible, 3000); // auto-save after 3s idle
+}
+
+async function saveBible() {
+  if (!currentProjectId) return;
+  clearTimeout(_bibleTimer);
+  const data = {
+    characters: document.getElementById('bible-characters').value,
+    conflicts:  document.getElementById('bible-conflicts').value,
+    volumes:    document.getElementById('bible-volumes').value,
+    notes:      document.getElementById('bible-notes').value,
+  };
+  await api(`/api/projects/${currentProjectId}/bible`, 'PUT', data);
+  _bibleChanged = false;
+  const hint = document.getElementById('bible-save-hint');
+  hint.textContent = '✓ 已保存';
+  setTimeout(() => { if (!_bibleChanged) hint.textContent = ''; }, 2000);
+}
+
+function startDirector() {
+  const range = document.getElementById('director-range').value.trim();
+  if (!range) { alert('请填写规划范围'); return; }
+  if (!currentProjectId) return;
+  if (_directorEs) { _directorEs.close(); _directorEs = null; }
+
+  // Save bible first so director reads the latest
+  saveBible();
+
+  document.getElementById('director-btn').disabled = true;
+  document.getElementById('director-hint').textContent = '总监 Agent 规划中…';
+  document.getElementById('director-output').innerHTML = '';
+  let rawMd = '';
+
+  const es = new EventSource(
+    `/api/projects/${currentProjectId}/director/stream?chapter_range=${encodeURIComponent(range)}`
+  );
+  _directorEs = es;
+
+  es.addEventListener('chunk', e => {
+    rawMd += JSON.parse(e.data).text;
+    document.getElementById('director-output').innerHTML = renderMd(rawMd);
+  });
+  es.addEventListener('end', () => {
+    es.close(); _directorEs = null;
+    document.getElementById('director-btn').disabled = false;
+    document.getElementById('director-hint').textContent = '';
+  });
+  es.addEventListener('error', e => {
+    es.close(); _directorEs = null;
+    document.getElementById('director-btn').disabled = false;
+    document.getElementById('director-hint').textContent = '';
+    try { const d = JSON.parse(e.data); if (d.msg) alert('规划出错：' + d.msg); } catch(err) {}
+  });
+}
+
+// Lightweight markdown renderer (headings, bold, tables, lists)
+function renderMd(md) {
+  let html = esc(md)
+    // headings
+    .replace(/^### (.+)$/gm, '<h3 style="color:var(--text);font-size:13px;margin:12px 0 4px">$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h2 style="font-size:17px">$1</h2>')
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // list items
+    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    // blank lines → paragraph break
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '\n');
+
+  // Simple table parsing
+  html = html.replace(/((?:\|.+\|\n?)+)/g, (match) => {
+    const lines = match.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) return match;
+    let t = '<table>';
+    lines.forEach((line, i) => {
+      if (/^\|[-| ]+\|$/.test(line.trim())) return; // skip separator
+      const cells = line.split('|').filter((_, ci) => ci > 0 && ci < line.split('|').length - 1);
+      const tag = i === 0 ? 'th' : 'td';
+      t += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+    });
+    t += '</table>';
+    return t;
+  });
+
+  return html;
 }
 
 // ── Write ─────────────────────────────────────────────────────────────────────
